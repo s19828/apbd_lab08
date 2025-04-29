@@ -51,16 +51,11 @@ public class ClientsService : IClientsService
         {
             cmd.Parameters.AddWithValue("@id", id);
             await conn.OpenAsync();
-
-            using (var reader = await cmd.ExecuteReaderAsync())
+            
+            var result = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            if (result != 0)
             {
-                while (await reader.ReadAsync())
-                {
-                    if (reader.GetInt32(0) != 0)
-                    {
-                        exists = true;
-                    }
-                }
+                exists = true;
             }
         }
         
@@ -74,24 +69,30 @@ public class ClientsService : IClientsService
         string command = @"SELECT Count(1) FROM Client_Trip 
                             LEFT JOIN Trip ON Trip.IdTrip = Client_Trip.IdTrip
                             WHERE IdClient = @id";
+        
         using (SqlConnection conn = new SqlConnection(_connectionString))
         using (SqlCommand cmd = new SqlCommand(command, conn))
         {
             cmd.Parameters.AddWithValue("@id", id);
             await conn.OpenAsync();
-
-            using (var reader = await cmd.ExecuteReaderAsync())
+            
+            var result = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            if (result > 0)
             {
-                while (await reader.ReadAsync())
-                {
-                    if (reader.GetInt32(0) > 0)
-                    {
-                        hasTrips = true;
-                    }
-                }
+                hasTrips = true;
             }
         }
         
         return hasTrips;
+    }
+
+    public Task<bool> RegisterClient(int id, int tripId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> DeleteRegistration(int id, int tripId)
+    {
+        throw new NotImplementedException();
     }
 }

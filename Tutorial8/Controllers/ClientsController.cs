@@ -24,7 +24,20 @@ namespace Tutorial8.Controllers
             var trips = await _clientsService.GetTripsByClient(id);
             return Ok(trips);
         }
-        
+
+        [HttpPut("{id}/trips/{tripId}")]
+        public async Task<IActionResult> RegisterClient(int id, int tripId)
+        {
+            //todo
+            return Ok();
+        }
+
+        [HttpDelete("{id}/trips/{tripId}")]
+        public async Task<IActionResult> DeleteRegistration(int id, int tripId)
+        {
+            //todo
+            return Ok();
+        }
        
     }
 }
