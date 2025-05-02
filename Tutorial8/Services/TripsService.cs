@@ -9,9 +9,11 @@ public class TripsService : ITripsService
     
     public async Task<List<TripDTO>> GetTrips()
     {
-        var trips = new List<TripDTO>();
+        var trips = new Dictionary<int, TripDTO>();
 
-        string command = "SELECT IdTrip, Name, Description, DateFrom, DateTo, MaxPeople FROM Trip";
+        string command = @"SELECT Trip.IdTrip, Trip.Name, Description, DateFrom, DateTo, MaxPeople, Country.Name FROM Trip 
+                            LEFT JOIN Country_Trip ON Trip.IdTrip = Country_Trip.IdTrip 
+                            LEFT JOIN Country ON Country_Trip.IdCountry = Country.IdCountry";
         
         using (SqlConnection conn = new SqlConnection(_connectionString))
         using (SqlCommand cmd = new SqlCommand(command, conn))
@@ -24,43 +26,36 @@ public class TripsService : ITripsService
                 {
                     int idOrdinal = reader.GetOrdinal("IdTrip");
                     
-                    trips.Add(new TripDTO()
-                    {
-                        Id = reader.GetInt32(idOrdinal),
-                        Name = reader.GetString(1),
-                        Description = reader.GetString(2),
-                        DateFrom = reader.GetDateTime(3),
-                        DateTo = reader.GetDateTime(4),
-                        MaxPeople = reader.GetInt32(5)
-                    });
-                }
-            }
-        }
+                    int idTrip = reader.GetInt32(idOrdinal);
 
-       command = @"SELECT IdTrip, Country.Name FROM Country_Trip
-                    LEFT JOIN Country ON Country_Trip.IdCountry = Country.IdCountry";
-        
-        using (SqlConnection conn = new SqlConnection(_connectionString))
-        using (SqlCommand cmd = new SqlCommand(command, conn))
-        {
-            await conn.OpenAsync();
-
-            using (var reader = await cmd.ExecuteReaderAsync())
-            {
-                while (await reader.ReadAsync())
-                {
-                    foreach (var trip in trips)
+                    if (!trips.TryGetValue(idTrip, out TripDTO newTrip))
                     {
-                        if (trip.Id == reader.GetInt32(0))
-                            trip.Countries.Add(new CountryDTO()
-                            {
-                                Name = reader.GetString(1),
-                            });
+                        newTrip = new TripDTO 
+                       {
+                            Id = reader.GetInt32(idOrdinal),
+                            Name = reader.GetString(1),
+                            Description = reader.GetString(2),
+                            DateFrom = reader.GetDateTime(3),
+                            DateTo = reader.GetDateTime(4),
+                            MaxPeople = reader.GetInt32(5),
+                            Countries = new List<CountryDTO>()
+                        };
+                       
+                       trips[idTrip] = newTrip;
                     }
+
+                    if (!reader.IsDBNull(6))
+                    {
+                        newTrip.Countries.Add( new CountryDTO()
+                        {
+                            Name = reader.GetString(6)
+                        });
+                    }
+                    
                 }
             }
         }
         
-        return trips;
+        return trips.Values.ToList();
     }
 }
