@@ -85,13 +85,34 @@ public class ClientsService : IClientsService
         
         return hasTrips;
     }
+    
+    public async Task<int> AddClient(ClientDTO client)
+    {
+        string command = @"INSERT INTO Client ( FirstName, LastName, Email, Telephone, Pesel)
+                            VALUES (@FirstName, @LastName, @Email, @Telephone, @Pesel);
+                            SELECT SCOPE_IDENTITY();";
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        using (SqlCommand cmd = new SqlCommand(command, conn))
+        {
+            cmd.Parameters.AddWithValue("@FirstName", client.FirstName);
+            cmd.Parameters.AddWithValue("@LastName", client.LastName);
+            cmd.Parameters.AddWithValue("@Email", client.Email);
+            cmd.Parameters.AddWithValue("@Telephone", client.Telephone);
+            cmd.Parameters.AddWithValue("@Pesel", client.Pesel);
+            
+            await conn.OpenAsync();
+            
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
+        }
+    }
 
-    public Task<bool> RegisterClient(int id, int tripId)
+    public async Task<bool> RegisterClient(int id, int tripId)
     {
         throw new NotImplementedException();
     }
 
-    public Task<bool> DeleteRegistration(int id, int tripId)
+    public async Task<bool> DeleteRegistration(int id, int tripId)
     {
         throw new NotImplementedException();
     }

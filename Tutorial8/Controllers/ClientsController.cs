@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Tutorial8.Models.DTOs;
 using Tutorial8.Services;
 
 namespace Tutorial8.Controllers
@@ -23,6 +24,17 @@ namespace Tutorial8.Controllers
             }
             var trips = await _clientsService.GetTripsByClient(id);
             return Ok(trips);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddClient([FromBody] ClientDTO client)
+        {
+            if (client == null)
+            {
+                return BadRequest("No client data");
+            }
+            
+            return Ok(await _clientsService.AddClient(client));
         }
 
         [HttpPut("{id}/trips/{tripId}")]
