@@ -38,17 +38,35 @@ namespace Tutorial8.Controllers
         }
 
         [HttpPut("{id}/trips/{tripId}")]
-        public async Task<IActionResult> RegisterClient(int id, int tripId)
+        public async Task<IActionResult> AddRegistration(int id, int tripId)
         {
-            //todo
-            return Ok();
+            if (!await _clientsService.DoesCLientExist(id) || !await _clientsService.DoesTripExist(tripId))
+            {
+                return NotFound();
+            }
+
+            if (!await _clientsService.IsTripBelowMax(tripId))
+            {
+                return Conflict("This trip reached the maximum number of people");
+            }
+
+            if (await _clientsService.DoesRegistrationExist(id, tripId))
+            {
+                return Conflict("This registration already exists");
+            }
+            
+            return Ok(await _clientsService.AddRegistration(id, tripId) ? "Added registration for client: " + id + " for trip: " + tripId : "Registration could not be added");
         }
 
         [HttpDelete("{id}/trips/{tripId}")]
         public async Task<IActionResult> DeleteRegistration(int id, int tripId)
         {
-            //todo
-            return Ok();
+            if (!await _clientsService.DoesRegistrationExist(id, tripId))
+            {
+                return NotFound();
+            }
+            
+            return Ok(await _clientsService.DeleteRegistration(id, tripId) ? "Registration successfully deleted" : "Registration could not be deleted");
         }
        
     }

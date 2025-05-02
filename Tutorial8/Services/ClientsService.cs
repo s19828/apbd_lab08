@@ -53,7 +53,29 @@ public class ClientsService : IClientsService
             await conn.OpenAsync();
             
             var result = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-            if (result != 0)
+            if (result > 0)
+            {
+                exists = true;
+            }
+        }
+        
+        return exists;
+    }
+
+    public async Task<bool> DoesTripExist(int tripId)
+    {
+        bool exists = false;
+        
+        string command = "SELECT Count(1) FROM Trip WHERE IdTrip = @id";
+        
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        using (SqlCommand cmd = new SqlCommand(command, conn))
+        {
+            cmd.Parameters.AddWithValue("@id", tripId);
+            await conn.OpenAsync();
+            
+            var result = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            if (result > 0)
             {
                 exists = true;
             }
@@ -85,7 +107,60 @@ public class ClientsService : IClientsService
         
         return hasTrips;
     }
-    
+
+    public async Task<bool> IsTripBelowMax(int tripId)
+    {
+        bool belowMax = false;
+        
+        string command = @"SELECT Count(1), Trip.MaxPeople FROM Client_Trip 
+                            LEFT JOIN Trip ON Trip.IdTrip = Client_Trip.IdTrip
+                            WHERE Trip.IdTrip = @id
+                            GROUP BY Trip.MaxPeople";
+        
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        using (SqlCommand cmd = new SqlCommand(command, conn))
+        {
+            cmd.Parameters.AddWithValue("@id", tripId);
+            await conn.OpenAsync();
+            
+            using (var reader = await cmd.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    if (reader.GetInt32(0) < reader.GetInt32(1))
+                    {
+                        belowMax = true;
+                    }
+                }
+            }
+        }
+        
+        return belowMax;
+    }
+
+    public async Task<bool> DoesRegistrationExist(int id, int tripId)
+    {
+        bool exists = false;
+        
+        string command = "SELECT Count(1) FROM Client_Trip WHERE IdClient = @id AND IdTrip = @tripId";
+        
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        using (SqlCommand cmd = new SqlCommand(command, conn))
+        {
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@tripId", tripId);
+            await conn.OpenAsync();
+            
+            var result = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            if (result > 0)
+            {
+                exists = true;
+            }
+        }
+        
+        return exists;
+    }
+
     public async Task<int> AddClient(ClientDTO client)
     {
         string command = @"INSERT INTO Client ( FirstName, LastName, Email, Telephone, Pesel)
@@ -107,13 +182,39 @@ public class ClientsService : IClientsService
         }
     }
 
-    public async Task<bool> RegisterClient(int id, int tripId)
+    public async Task<bool> AddRegistration(int id, int tripId)
     {
-        throw new NotImplementedException();
+        string command = @"INSERT INTO Client_Trip ( IdClient, IdTrip, RegisteredAt)
+                            VALUES (@IdClient, @IdTrip, @RegisteredAt)";
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        using (SqlCommand cmd = new SqlCommand(command, conn))
+        {
+            cmd.Parameters.AddWithValue("@IdClient", id);
+            cmd.Parameters.AddWithValue("@IdTrip", tripId);
+            cmd.Parameters.AddWithValue("@RegisteredAt", int.Parse(DateTime.Today.ToString("yyyyMMdd")));
+            
+            await conn.OpenAsync();
+            
+            int rowsAffected = await cmd.ExecuteNonQueryAsync();
+            
+            return rowsAffected > 0;
+        }
     }
 
     public async Task<bool> DeleteRegistration(int id, int tripId)
     {
-        throw new NotImplementedException();
+        string command = "DELETE FROM Client_Trip WHERE IdClient = @IdClient AND IdTrip = @IdTrip";
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        using (SqlCommand cmd = new SqlCommand(command, conn))
+        {
+            cmd.Parameters.AddWithValue("@IdClient", id);
+            cmd.Parameters.AddWithValue("@IdTrip", tripId);
+            
+            await conn.OpenAsync();
+            
+            int rowsAffected = await cmd.ExecuteNonQueryAsync();
+            
+            return rowsAffected > 0;
+        }
     }
 }
